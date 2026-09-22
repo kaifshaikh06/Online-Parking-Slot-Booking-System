@@ -24,7 +24,6 @@ const Navbar = () => {
             <NavLink to="/dashboard" className={linkClass}>Dashboard</NavLink>
             <NavLink to="/book-slot" className={linkClass}>Book Slot</NavLink>
             <NavLink to="/my-bookings" className={linkClass}>My Bookings</NavLink>
-            <NavLink to="/profile" className={linkClass}>Profile</NavLink>
             <button className="link-button" onClick={handleLogout}>Logout</button>
           </>}
           {user?.role === 'admin' && <>

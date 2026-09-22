@@ -6,11 +6,15 @@ A simple MERN CRUD project for reserving parking spaces. It is designed for a BC
 
 - User registration and JWT login
 - Admin login with the same `users` collection and a `role` field
-- Admin dashboard: total, available, and booked slots; total bookings
+- Enhanced dashboards with availability, occupancy, and current-month booking totals
 - Full parking-slot CRUD for admins
+- A-01 to A-20 parking map with visible available/booked spaces and car icons
+- Hourly parking rates with a booking-time cost estimate
+- Automatic slot release after a booked end time passes
+- Dummy payment confirmation before a booking is created
 - Booking creation, cancellation, and deletion API with slot-status synchronization
 - Admin booking search by slot number or vehicle number
-- User dashboard, available-slot view, My Bookings, and editable profile
+- User dashboard, available-slot view, and My Bookings
 - Responsive forms, tables, messages, loading states, and confirmation prompts
 
 ## Technology stack
@@ -27,7 +31,7 @@ There are exactly two roles: `user` and `admin`.
 MongoDB uses only these three application collections:
 
 1. `users` — name, email, hashed password, phone, role
-2. `parking_slots` — slot number, location, vehicle type, status, price
+2. `parking_slots` — A-01 to A-20 slot number, location, vehicle type, status, hourly rate
 3. `bookings` — user reference, parking slot reference, vehicle number, time, status
 
 ## Installation
@@ -83,12 +87,22 @@ Role: admin
 
 This password is only a development seed value and must be changed for a real deployment.
 
+## Seed the 20 parking spaces
+
+Create the default car parking map after configuring `server/.env`:
+
+```bash
+cd server
+npm run seed:slots
+```
+
+This safely adds any missing spaces from `A-01` through `A-20`. It does not overwrite existing slot details, rates, or booking statuses. Each new slot starts with a default hourly rate of `₹50`.
+
 ## API overview
 
 | Area | Endpoint | Access |
 | --- | --- | --- |
 | Auth | `POST /api/auth/register`, `POST /api/auth/login` | Public |
-| Profile | `GET/PUT /api/users/profile` | Signed-in user |
 | Slots | `GET /api/slots`, `GET /api/slots/:id` | Signed-in user/admin |
 | Slots CRUD | `POST/PUT/DELETE /api/slots...` | Admin only |
 | Admin stats | `GET /api/slots/stats` | Admin only |
@@ -105,13 +119,19 @@ Protected calls use `Authorization: Bearer <token>`. The server uses the user ID
 - Cancelling updates the booking status to `Cancelled` and changes the slot to `Available`.
 - Deleting an active booking also restores the slot to `Available`.
 - A slot with an active booking cannot be deleted, and the backend checks availability and active bookings before a booking is created.
+- The server checks bookings every minute and automatically releases a parking slot after its booked end time passes. Booking history remains visible in My Bookings as `Ended`.
+- The payment screen is a front-end demonstration only: it shows the calculated hourly amount, confirms payment, and then creates the booking. No real payment data is collected or stored.
 
 ## Test checklist
 
-- Register a user, log in, and update their profile.
-- Run the admin seed, log in as admin, create/edit/delete an unused slot.
+- Register a user and log in.
+- Run the admin and slot seeds, then log in as admin and view A-01 to A-20.
 - Confirm a normal user is redirected away from admin pages and receives `403` from admin APIs.
-- As a user, book an available slot and confirm it disappears from Book Slot.
+- As a user, confirm the parking map shows both available and booked spaces, then book an available slot.
+- Confirm the hourly rate and booking-time estimate change when start/end times change.
+- Use the dummy payment confirmation and verify the payment-completed message before redirection to My Bookings.
 - Cancel the booking and confirm the slot is available again.
+- Set a short booking time, then confirm the slot becomes available automatically after its end time (the server checks once per minute).
+- Confirm the dashboard shows current-month booking totals.
 - As admin, search bookings by `slotNumber` and `vehicleNumber`.
 - Try duplicate email, invalid login, duplicate slot number, unavailable slot booking, and an end time earlier than start time.

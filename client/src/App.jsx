@@ -14,7 +14,6 @@ import SearchBookings from './pages/SearchBookings';
 import UserDashboard from './pages/UserDashboard';
 import BookSlot from './pages/BookSlot';
 import MyBookings from './pages/MyBookings';
-import Profile from './pages/Profile';
 
 const NotFound = () => <main className="container page"><h1>Page not found</h1></main>;
 
@@ -27,7 +26,6 @@ const App = () => <><Navbar /><Routes>
     <Route path="/dashboard" element={<UserDashboard />} />
     <Route path="/book-slot" element={<BookSlot />} />
     <Route path="/my-bookings" element={<MyBookings />} />
-    <Route path="/profile" element={<Profile />} />
     </Route>
   </Route>
   <Route element={<AdminRoute />}>

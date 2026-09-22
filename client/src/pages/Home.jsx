@@ -1,14 +1,16 @@
 import { Link } from 'react-router-dom';
 
 const Home = () => <main>
-  <section className="hero container">
-    <div>
-      <p className="eyebrow">Simple parking, less waiting</p>
-      <h1>Reserve your parking space before you arrive.</h1>
-      <p className="hero-copy">ParkEase helps drivers see available slots, make a booking, and manage it from one clear dashboard.</p>
-      <div className="button-row"><Link className="button" to="/login">Login</Link><Link className="button button-outline" to="/register">Create Account</Link></div>
+  <section className="home-hero">
+    <div className="container home-hero-content">
+      <div className="home-intro">
+        <p className="eyebrow">Simple parking, less waiting</p>
+        <h1>Reserve your parking space before you arrive.</h1>
+        <p className="hero-copy">ParkEase helps drivers see available slots, make a booking, and manage it from one clear dashboard.</p>
+        <div className="button-row"><Link className="button" to="/login">Login</Link><Link className="button button-light" to="/register">Create Account</Link></div>
+      </div>
+      <div className="hero-steps" aria-label="How ParkEase works"><span>01</span><p><strong>Choose a slot</strong>View spaces that are available now.</p><span>02</span><p><strong>Enter booking details</strong>Add your vehicle and parking time.</p><span>03</span><p><strong>Park with confidence</strong>Manage your booking anytime.</p></div>
     </div>
-    <div className="hero-card"><span>01</span><h2>Choose a slot</h2><span>02</span><h2>Enter booking details</h2><span>03</span><h2>Park with confidence</h2></div>
   </section>
   <section className="container info-section">
     <h2>How it works</h2>

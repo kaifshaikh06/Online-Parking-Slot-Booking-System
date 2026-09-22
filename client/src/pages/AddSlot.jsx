@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import api, { getErrorMessage } from '../services/api';
 import SlotForm from '../components/SlotForm';
 
-const emptySlot = { slotNumber: '', location: '', vehicleType: 'Car', price: '', status: 'Available' };
+const emptySlot = { slotNumber: '', location: 'Level A', vehicleType: 'Car', price: '50', status: 'Available' };
 const AddSlot = () => {
   const navigate = useNavigate();
   const save = async (values) => {

@@ -28,7 +28,7 @@ const Login = () => {
     }
   };
 
-  return <main className="auth-page"><form className="auth-card" onSubmit={submit}><p className="eyebrow">Welcome back</p><h1>Login to ParkEase</h1><Message>{error}</Message><label>Email<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></label><label>Password<input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></label><button className="button" disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button><p className="muted">New here? <Link to="/register">Create an account</Link></p></form></main>;
+  return <main className="auth-page login-page"><form className="auth-card" onSubmit={submit}><p className="eyebrow">Welcome back</p><h1>Login to ParkEase</h1><Message>{error}</Message><label>Email<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></label><label>Password<input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required /></label><button className="button" disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button><p className="muted">New here? <Link to="/register">Create an account</Link></p></form></main>;
 };
 
 export default Login;

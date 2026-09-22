@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const slotRoutes = require('./routes/slotRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
+const { startBookingExpiryScheduler } = require('./services/bookingExpiryService');
 
 const app = express();
 app.use(cors());
@@ -25,4 +26,7 @@ app.use((error, req, res, next) => {
 });
 
 const port = process.env.PORT || 5000;
-connectDatabase().then(() => app.listen(port, () => console.log(`Server running on port ${port}`)));
+connectDatabase().then(() => {
+  startBookingExpiryScheduler();
+  app.listen(port, () => console.log(`Server running on port ${port}`));
+});

@@ -1,5 +1,6 @@
 const Booking = require('../models/Booking');
 const ParkingSlot = require('../models/ParkingSlot');
+const { isBookingActive, releaseExpiredBookings, syncSlotAvailability } = require('../services/bookingExpiryService');
 
 const bookingPopulate = [
   { path: 'user', select: 'name email phone' },
@@ -23,8 +24,11 @@ const createBooking = async (req, res, next) => {
     if (message) return res.status(400).json({ message });
     if (!parkingSlot) return res.status(400).json({ message: 'Parking slot is required.' });
 
-    const alreadyBooked = await Booking.exists({ parkingSlot, status: 'Booked' });
-    if (alreadyBooked) return res.status(400).json({ message: 'This parking slot already has an active booking.' });
+    await releaseExpiredBookings();
+    const existingBookings = await Booking.find({ parkingSlot, status: 'Booked' }).select('bookingDate endTime status');
+    if (existingBookings.some((booking) => isBookingActive(booking))) {
+      return res.status(400).json({ message: 'This parking slot already has an active booking.' });
+    }
 
     const slot = await ParkingSlot.findOneAndUpdate(
       { _id: parkingSlot, status: 'Available' },
@@ -103,7 +107,7 @@ const updateBooking = async (req, res, next) => {
 
     booking.status = 'Cancelled';
     await booking.save();
-    await ParkingSlot.findByIdAndUpdate(booking.parkingSlot, { status: 'Available' });
+    await syncSlotAvailability(booking.parkingSlot);
     await booking.populate(bookingPopulate);
     return res.json({ message: 'Booking cancelled and slot made available.', booking });
   } catch (error) {
@@ -118,8 +122,9 @@ const deleteBooking = async (req, res, next) => {
     const booking = await Booking.findOne(filter);
     if (!booking) return res.status(404).json({ message: 'Booking not found.' });
 
-    if (booking.status === 'Booked') await ParkingSlot.findByIdAndUpdate(booking.parkingSlot, { status: 'Available' });
+    const parkingSlotId = booking.parkingSlot;
     await booking.deleteOne();
+    await syncSlotAvailability(parkingSlotId);
     return res.json({ message: 'Booking deleted successfully. Slot availability was synchronized.' });
   } catch (error) {
     if (error.name === 'CastError') return res.status(404).json({ message: 'Booking not found.' });
