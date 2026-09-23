@@ -1,6 +1,7 @@
 const Booking = require('../models/Booking');
 const ParkingSlot = require('../models/ParkingSlot');
-const { isBookingActive, releaseExpiredBookings, syncSlotAvailability } = require('../services/bookingExpiryService');
+const { isBookingReserved, releaseExpiredBookings, syncSlotAvailability } = require('../services/bookingExpiryService');
+const { getNextBookingNumber } = require('../services/bookingNumberService');
 
 const bookingPopulate = [
   { path: 'user', select: 'name email phone' },
@@ -8,12 +9,21 @@ const bookingPopulate = [
 ];
 
 const validTime = (value) => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || ''));
+const bookingDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+const getDayBounds = (bookingDate) => {
+  const start = new Date(`${bookingDate}T00:00:00.000Z`);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 1);
+  return { start, end };
+};
 
 const validateBooking = ({ vehicleNumber, bookingDate, startTime, endTime }) => {
   if (!String(vehicleNumber || '').trim()) return 'Vehicle number is required.';
-  if (!bookingDate || Number.isNaN(new Date(bookingDate).getTime())) return 'A valid booking date is required.';
+  if (!bookingDate || !bookingDatePattern.test(bookingDate) || Number.isNaN(new Date(`${bookingDate}T00:00:00.000Z`).getTime())) return 'A valid booking date is required.';
   if (!validTime(startTime) || !validTime(endTime)) return 'Start and end time must be valid times.';
   if (startTime >= endTime) return 'End time must be later than start time.';
+  if (new Date(`${bookingDate}T${startTime}:00`) <= new Date()) return 'Booking start time must be in the future.';
   return null;
 };
 
@@ -24,32 +34,42 @@ const createBooking = async (req, res, next) => {
     if (message) return res.status(400).json({ message });
     if (!parkingSlot) return res.status(400).json({ message: 'Parking slot is required.' });
 
-    await releaseExpiredBookings();
-    const existingBookings = await Booking.find({ parkingSlot, status: 'Booked' }).select('bookingDate endTime status');
-    if (existingBookings.some((booking) => isBookingActive(booking))) {
-      return res.status(400).json({ message: 'This parking slot already has an active booking.' });
-    }
+    const { start: dayStart, end: dayEnd } = getDayBounds(bookingDate);
+    const slot = await ParkingSlot.findById(parkingSlot);
+    if (!slot) return res.status(404).json({ message: 'Parking slot not found.' });
 
-    const slot = await ParkingSlot.findOneAndUpdate(
-      { _id: parkingSlot, status: 'Available' },
-      { status: 'Booked' },
-      { new: true }
-    );
-    if (!slot) return res.status(400).json({ message: 'This parking slot is not available.' });
+    await releaseExpiredBookings();
+    const conflictingBooking = await Booking.findOne({
+      parkingSlot: slot._id,
+      status: 'Booked',
+      bookingDate: { $gte: dayStart, $lt: dayEnd },
+      startTime: { $lt: endTime },
+      endTime: { $gt: startTime }
+    });
+    if (conflictingBooking) return res.status(400).json({ message: `This slot is reserved until ${conflictingBooking.endTime}. Choose a time after it ends.` });
 
     try {
-      const booking = await Booking.create({
-        user: req.user._id,
-        parkingSlot: slot._id,
-        vehicleNumber: vehicleNumber.trim(),
-        bookingDate,
-        startTime,
-        endTime
-      });
+      let booking;
+      for (let attempt = 0; attempt < 3 && !booking; attempt += 1) {
+        try {
+          booking = await Booking.create({
+            bookingNumber: await getNextBookingNumber(),
+            user: req.user._id,
+            parkingSlot: slot._id,
+            vehicleNumber: vehicleNumber.trim(),
+            bookingDate,
+            startTime,
+            endTime
+          });
+        } catch (creationError) {
+          if (creationError.code !== 11000 || !creationError.keyPattern?.bookingNumber || attempt === 2) throw creationError;
+        }
+      }
+      await syncSlotAvailability(slot._id);
       await booking.populate(bookingPopulate);
       return res.status(201).json({ message: 'Parking slot booked successfully.', booking });
     } catch (creationError) {
-      await ParkingSlot.findByIdAndUpdate(slot._id, { status: 'Available' });
+      await syncSlotAvailability(slot._id);
       throw creationError;
     }
   } catch (error) {
@@ -71,6 +91,26 @@ const getMyBookings = async (req, res, next) => {
   try {
     const bookings = await Booking.find({ user: req.user._id }).populate('parkingSlot', 'slotNumber location vehicleType price status').sort({ createdAt: -1 });
     return res.json({ bookings });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getBookingSchedule = async (req, res, next) => {
+  try {
+    const { bookingDate } = req.query;
+    if (!bookingDate || !bookingDatePattern.test(bookingDate)) return res.status(400).json({ message: 'A valid booking date is required.' });
+    const { start, end } = getDayBounds(bookingDate);
+    const schedule = await Booking.find({ bookingDate: { $gte: start, $lt: end }, status: 'Booked' })
+      .select('parkingSlot startTime endTime bookingDate status')
+      .sort({ startTime: 1 });
+    return res.json({
+      bookings: schedule.filter((booking) => isBookingReserved(booking)).map((booking) => ({
+        parkingSlot: booking.parkingSlot,
+        startTime: booking.startTime,
+        endTime: booking.endTime
+      }))
+    });
   } catch (error) {
     next(error);
   }
@@ -132,4 +172,4 @@ const deleteBooking = async (req, res, next) => {
   }
 };
 
-module.exports = { createBooking, getBookings, getMyBookings, searchBookings, updateBooking, deleteBooking };
+module.exports = { createBooking, getBookings, getMyBookings, getBookingSchedule, searchBookings, updateBooking, deleteBooking };

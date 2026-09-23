@@ -5,7 +5,12 @@ import Message from '../components/Message';
 import StatusBadge from '../components/StatusBadge';
 
 const date = (value) => value ? new Date(value).toLocaleDateString() : '—';
-const BookingRows = ({ bookings }) => <div className="table-wrap"><table><thead><tr><th>Booking ID</th><th>User</th><th>Slot Number</th><th>Vehicle Number</th><th>Booking Date</th><th>Start</th><th>End</th><th>Status</th><th>Created Date</th></tr></thead><tbody>{bookings.map((booking) => <tr key={booking._id}><td className="id-cell">{booking._id}</td><td>{booking.user?.name || 'Deleted user'}<small>{booking.user?.email}</small></td><td>{booking.parkingSlot?.slotNumber || 'Deleted slot'}</td><td>{booking.vehicleNumber}</td><td>{date(booking.bookingDate)}</td><td>{booking.startTime}</td><td>{booking.endTime}</td><td><StatusBadge status={booking.status} /></td><td>{date(booking.createdAt)}</td></tr>)}</tbody></table></div>;
+const hasBookingEnded = (booking) => {
+  const bookingDay = new Date(booking.bookingDate).toISOString().slice(0, 10);
+  return booking.status === 'Booked' && new Date(`${bookingDay}T${booking.endTime}:00`) <= new Date();
+};
+
+const BookingRows = ({ bookings }) => <div className="table-wrap"><table><thead><tr><th>Booking ID</th><th>User</th><th>Slot Number</th><th>Vehicle Number</th><th>Booking Date</th><th>Start</th><th>End</th><th>Status</th><th>Created Date</th></tr></thead><tbody>{bookings.map((booking) => <tr key={booking._id}><td className="id-cell">{booking.bookingNumber || '—'}</td><td>{booking.user?.name || 'Deleted user'}<small>{booking.user?.email}</small></td><td>{booking.parkingSlot?.slotNumber || 'Deleted slot'}</td><td>{booking.vehicleNumber}</td><td>{date(booking.bookingDate)}</td><td>{booking.startTime}</td><td>{booking.endTime}</td><td><StatusBadge status={hasBookingEnded(booking) ? 'Ended' : booking.status} /></td><td>{date(booking.createdAt)}</td></tr>)}</tbody></table></div>;
 
 const SearchBookings = () => {
   const [bookings, setBookings] = useState(null); const [query, setQuery] = useState({ slotNumber: '', vehicleNumber: '' }); const [error, setError] = useState(''); const [searched, setSearched] = useState(false);

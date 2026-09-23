@@ -8,10 +8,12 @@ A simple MERN CRUD project for reserving parking spaces. It is designed for a BC
 - Admin login with the same `users` collection and a `role` field
 - Enhanced dashboards with availability, occupancy, and current-month booking totals
 - Full parking-slot CRUD for admins
-- A-01 to A-20 parking map with visible available/booked spaces and car icons
+- A-01 to A-20 parking map with visible available/booked spaces, car icons, and booked-until times
 - Hourly parking rates with a booking-time cost estimate
 - Automatic slot release after a booked end time passes
 - Dummy payment confirmation before a booking is created
+- Multiple non-overlapping bookings for the same space on the same date
+- Simple sequential booking IDs (`1`, `2`, `3`...) instead of MongoDB object IDs
 - Booking creation, cancellation, and deletion API with slot-status synchronization
 - Admin booking search by slot number or vehicle number
 - User dashboard, available-slot view, and My Bookings
@@ -31,7 +33,7 @@ There are exactly two roles: `user` and `admin`.
 MongoDB uses only these three application collections:
 
 1. `users` — name, email, hashed password, phone, role
-2. `parking_slots` — A-01 to A-20 slot number, location, vehicle type, status, hourly rate
+2. `parking_slots` — A-01 to A-20 slot number, Level A location, car type, status, hourly rate
 3. `bookings` — user reference, parking slot reference, vehicle number, time, status
 
 ## Installation
@@ -96,7 +98,9 @@ cd server
 npm run seed:slots
 ```
 
-This safely adds any missing spaces from `A-01` through `A-20`. It does not overwrite existing slot details, rates, or booking statuses. Each new slot starts with a default hourly rate of `₹50`.
+This safely adds any missing spaces from `A-01` through `A-20`. It preserves existing slot rates and booking statuses; each new slot starts with a default hourly rate of `₹50`.
+
+All parking spaces use `Level A`. The available vehicle types are Sedan, SUV, Coupe, Muscle, Hatchback, and Convertible. On server start, legacy location/type values are normalized to Level A and Sedan where needed.
 
 ## API overview
 
@@ -121,6 +125,8 @@ Protected calls use `Authorization: Bearer <token>`. The server uses the user ID
 - A slot with an active booking cannot be deleted, and the backend checks availability and active bookings before a booking is created.
 - The server checks bookings every minute and automatically releases a parking slot after its booked end time passes. Booking history remains visible in My Bookings as `Ended`.
 - The payment screen is a front-end demonstration only: it shows the calculated hourly amount, confirms payment, and then creates the booking. No real payment data is collected or stored.
+- A parking space can have several bookings on the same day when their hours do not overlap. The booking map shows the reserved period and marks a conflicting selected period as booked until its end time.
+- When a space has a current or future reservation, an admin may correct only its slot number. Its rate, car type, location, and availability status are locked until that reservation ends.
 
 ## Test checklist
 
@@ -128,10 +134,12 @@ Protected calls use `Authorization: Bearer <token>`. The server uses the user ID
 - Run the admin and slot seeds, then log in as admin and view A-01 to A-20.
 - Confirm a normal user is redirected away from admin pages and receives `403` from admin APIs.
 - As a user, confirm the parking map shows both available and booked spaces, then book an available slot.
+- Make a second non-overlapping booking for the same slot and date; then try an overlapping time range and confirm it shows the booked-until time.
 - Confirm the hourly rate and booking-time estimate change when start/end times change.
 - Use the dummy payment confirmation and verify the payment-completed message before redirection to My Bookings.
 - Cancel the booking and confirm the slot is available again.
 - Set a short booking time, then confirm the slot becomes available automatically after its end time (the server checks once per minute).
 - Confirm the dashboard shows current-month booking totals.
+- Confirm My Bookings and Admin Bookings show numeric Booking IDs instead of MongoDB object IDs.
 - As admin, search bookings by `slotNumber` and `vehicleNumber`.
 - Try duplicate email, invalid login, duplicate slot number, unavailable slot booking, and an end time earlier than start time.

@@ -11,7 +11,7 @@ a { color: #155eef; text-decoration: none; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 
-.container { width: min(1120px, calc(100% - 32px)); margin: 0 auto; }
+.container { width: min(1320px, calc(100% - 24px)); margin: 0 auto; }
 .site-header { background: #fff; border-bottom: 1px solid #e6eaf0; position: sticky; top: 0; z-index: 10; }
 .navbar { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .brand { color: #142a5e; font-weight: 800; font-size: 1.35rem; letter-spacing: -0.03em; }
@@ -23,7 +23,7 @@ button { cursor: pointer; }
 
 .home-hero { position: relative; min-height: 590px; display: flex; align-items: center; isolation: isolate; overflow: hidden; background-color: #142a5e; 
 background-image: linear-gradient(90deg, rgba(10, 23, 51, .93) 0%, rgba(10, 23, 51, .78) 42%, rgba(10, 23, 51, .30) 100%), url('/images/parking-lot-aerial.jpg'); background-size: cover; background-position: center; }
-.home-hero-content { width: min(1120px, calc(100% - 32px)); margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(290px, .8fr); gap: 64px; align-items: end; padding: 72px 0; }
+.home-hero-content { width: min(1320px, calc(100% - 24px)); margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(290px, .8fr); gap: 64px; align-items: end; padding: 72px 0; }
 .home-intro { max-width: 680px; }
 .eyebrow { color: #155eef; font-weight: 750; text-transform: uppercase; letter-spacing: .11em; font-size: .72rem; margin: 0 0 10px; }
 .home-hero .eyebrow { color: #bcd3ff; }
@@ -75,6 +75,7 @@ p { line-height: 1.6; }
 .quick-links a:hover { background: #d8e6ff; }
 
 .form-card, .search-form { background: #fff; border: 1px solid #e6eaf0; border-radius: 12px; padding: 25px; box-shadow: 0 5px 15px rgba(34, 58, 102, .04); }
+.form-note { margin: 0 0 18px; padding: 11px 13px; color: #73520a; border: 1px solid #f3d994; border-radius: 7px; background: #fff8df; font-size: .9rem; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-bottom: 22px; }
 label { display: grid; gap: 7px; color: #344055; font-weight: 700; font-size: .89rem; }
 input, select { min-width: 0; width: 100%; color: #172033; border: 1px solid #cbd3df; background: #fff; border-radius: 7px; padding: 10px 11px; outline: none; font-weight: 400; }
@@ -95,6 +96,7 @@ td small { display: block; color: #718096; margin-top: 3px; }
 .status-badge { display: inline-flex; padding: 4px 9px; border-radius: 999px; font-size: .77rem; font-weight: 750; }
 .status-badge.positive { color: #087443; background: #dcfae6; }
 .status-badge.warning { color: #9a6700; background: #fff3ce; }
+.status-badge.ended { color: #9a6700; background: #fff3ce; }
 
 .search-form { display: flex; flex-wrap: wrap; align-items: end; gap: 14px; margin-bottom: 20px; }
 .search-form label { flex: 1 1 220px; }
@@ -104,12 +106,16 @@ td small { display: block; color: #718096; margin-top: 3px; }
 .slot-card h2 { margin-bottom: 7px; }
 .slot-card p { margin: 4px 0; color: #607086; font-size: .93rem; }
 .slot-card .button { margin-top: 13px; }
+.schedule-picker { display: grid; grid-template-columns: .85fr 1.15fr; gap: 24px; align-items: end; margin: 24px 0; padding: 23px; border: 1px solid #d8e5f9; border-radius: 12px; background: linear-gradient(110deg, #edf4ff, #fff); }
+.schedule-picker h2 { margin: 0 0 5px; font-size: 1.25rem; }.schedule-picker p:not(.eyebrow) { margin: 0; color: #61718a; font-size: .9rem; }
+.schedule-inputs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
+.parking-map-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-top: 28px; }.parking-map-heading h2 { margin: 0; font-size: 1.3rem; }.parking-map-heading .parking-legend { justify-content: flex-end; margin: 0; }
 .parking-legend { display: flex; flex-wrap: wrap; gap: 15px 24px; margin: 22px 0 15px; color: #506078; font-size: .86rem; font-weight: 700; }
 .parking-legend span { display: inline-flex; align-items: center; gap: 7px; }
 .legend { display: inline-block; width: 11px; height: 11px; border-radius: 50%; }
 .legend.available { background: #18a566; }.legend.booked { background: #db4456; }.legend.unavailable { background: #8a96a8; }
 .parking-map { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 13px; padding: 19px; background: #eaf0f8; border: 1px solid #d6e0ed; border-radius: 14px; }
-.parking-space { min-height: 159px; padding: 14px 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 2px solid #d4ddea; border-radius: 10px; background: #fff; color: #243a66; transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.parking-space { min-height: 177px; padding: 14px 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 2px solid #d4ddea; border-radius: 10px; background: #fff; color: #243a66; transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
 .parking-space.available:hover { transform: translateY(-3px); border-color: #155eef; box-shadow: 0 8px 16px rgba(21,94,239,.16); }
 .parking-space.booked { cursor: not-allowed; color: #9e293a; background: #fff5f6; border-color: #f5c5cc; }
 .parking-space.unavailable { cursor: not-allowed; color: #68768a; background: #f3f5f8; border-color: #d9dfe8; }
@@ -121,6 +127,8 @@ td small { display: block; color: #718096; margin-top: 3px; }
 .parking-status { padding: 3px 7px; border-radius: 99px; color: #087443; background: #dcfae6; font-size: .68rem; font-weight: 800; }
 .parking-space.booked .parking-status { color: #a8263a; background: #ffe0e4; }
 .parking-space.unavailable .parking-status { color: #68768a; background: #e4e8ee; }
+.parking-schedule { min-height: 1.8rem; color: #69778b; font-size: .66rem; font-weight: 650; line-height: 1.35; text-align: center; }
+.parking-space.booked .parking-schedule { color: #a23c4a; }
 .booking-form { margin-top: 25px; }
 .booking-form h2 { font-size: 1.23rem; }
 .booking-form-heading { display: flex; justify-content: space-between; align-items: start; gap: 20px; margin-bottom: 21px; }
@@ -143,6 +151,11 @@ td small { display: block; color: #718096; margin-top: 3px; }
 .auth-card h1 { font-size: 2rem; margin: -6px 0 7px; }
 .auth-card .message { margin: 0; }
 .auth-card label { gap: 6px; }
+.password-field { position: relative; display: block; width: 100%; }
+.password-field input { padding-right: 46px; }
+.password-toggle { position: absolute; top: 50%; right: 6px; display: grid; width: 34px; height: 34px; padding: 0; place-items: center; transform: translateY(-50%); border: 0; border-radius: 6px; background: transparent; font-size: 1rem; line-height: 1; }
+.password-toggle:hover { background: #edf2fa; }
+.password-toggle:focus-visible { outline: 2px solid #155eef; outline-offset: 1px; }
 .auth-card .button { width: 100%; margin-top: 3px; }
 .muted { color: #647187; font-size: .92rem; text-align: center; margin: 0; }
 
@@ -156,6 +169,7 @@ td small { display: block; color: #718096; margin-top: 3px; }
   .capacity-track { flex-basis: auto; }
   .parking-map { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .parking-space { min-height: 145px; }
+  .schedule-picker { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 620px) {
@@ -176,6 +190,8 @@ td small { display: block; color: #718096; margin-top: 3px; }
   .register-page { background-image: linear-gradient(rgba(10, 23, 51, .62), rgba(10, 23, 51, .62)), url('/images/register-bg.jpg'); }
   .parking-map { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 12px; }
   .parking-space { min-height: 132px; }
+  .schedule-inputs { grid-template-columns: 1fr; }
+  .parking-map-heading { align-items: flex-start; flex-direction: column; }.parking-map-heading .parking-legend { justify-content: flex-start; }
   .booking-form-heading, .booking-estimate { align-items: flex-start; flex-direction: column; gap: 10px; }
   .booking-rate { text-align: left; }
   .dummy-payment { grid-template-columns: 1fr; }

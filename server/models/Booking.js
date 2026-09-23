@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema(
   {
+    bookingNumber: { type: Number, unique: true, sparse: true, min: 1 },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     parkingSlot: { type: mongoose.Schema.Types.ObjectId, ref: 'ParkingSlot', required: true },
     vehicleNumber: { type: String, required: true, trim: true, uppercase: true, maxlength: 25 },
