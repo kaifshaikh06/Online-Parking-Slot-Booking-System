@@ -325,7 +325,7 @@ const BookSlot = () => {
               {paymentOpen ? (
                 <section className="dummy-payment">
                   <div>
-                    <p className="eyebrow">Dummy payment</p>
+                    <p className="eyebrow">payment</p>
                     <h3>Confirm your payment</h3>
                     <p>
                       This is a demonstration only. No real payment is
@@ -355,7 +355,7 @@ const BookSlot = () => {
                   </div>
                 </section>
               ) : (
-                <button className="button">Proceed to Dummy Payment</button>
+                <button className="button">Proceed to Payment</button>
               )}
             </form>
           )}
