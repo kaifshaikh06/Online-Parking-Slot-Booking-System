@@ -104,15 +104,15 @@ All parking spaces use `Level A`. The available vehicle types are Sedan, SUV, Co
 
 ## API overview
 
-| Area | Endpoint | Access |
-| --- | --- | --- |
-| Auth | `POST /api/auth/register`, `POST /api/auth/login` | Public |
-| Slots | `GET /api/slots`, `GET /api/slots/:id` | Signed-in user/admin |
-| Slots CRUD | `POST/PUT/DELETE /api/slots...` | Admin only |
-| Admin stats | `GET /api/slots/stats` | Admin only |
-| Bookings | `POST /api/bookings`, `GET /api/bookings/my` | Signed-in user |
-| All/search bookings | `GET /api/bookings`, `GET /api/bookings/search` | Admin only |
-| Booking status/delete | `PUT/DELETE /api/bookings/:id` | Owner or admin |
+| Area                  | Endpoint                                          | Access               |
+| --------------------- | ------------------------------------------------- | -------------------- |
+| Auth                  | `POST /api/auth/register`, `POST /api/auth/login` | Public               |
+| Slots                 | `GET /api/slots`, `GET /api/slots/:id`            | Signed-in user/admin |
+| Slots CRUD            | `POST/PUT/DELETE /api/slots...`                   | Admin only           |
+| Admin stats           | `GET /api/slots/stats`                            | Admin only           |
+| Bookings              | `POST /api/bookings`, `GET /api/bookings/my`      | Signed-in user       |
+| All/search bookings   | `GET /api/bookings`, `GET /api/bookings/search`   | Admin only           |
+| Booking status/delete | `PUT/DELETE /api/bookings/:id`                    | Owner or admin       |
 
 Protected calls use `Authorization: Bearer <token>`. The server uses the user ID from the verified JWT, never an ID supplied by the booking form.
 
