@@ -8,3 +8,4 @@ const userMiddleware = (req, res, next) => {
 };
 
 module.exports = userMiddleware;
+// this is sheild between admin and user
