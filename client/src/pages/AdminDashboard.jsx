@@ -3,14 +3,19 @@ import { Link } from "react-router-dom";
 import api, { getErrorMessage } from "../services/api";
 import Loading from "../components/Loading";
 import Message from "../components/Message";
+import LineChart from "../components/LineChart";
+import PieChart from "../components/PieChart";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
   const [error, setError] = useState("");
   useEffect(() => {
-    api
-      .get("/slots/stats")
-      .then(({ data }) => setStats(data))
+    Promise.all([api.get("/slots/stats"), api.get("/bookings/analytics/admin")])
+      .then(([statsResponse, analyticsResponse]) => {
+        setStats(statsResponse.data);
+        setAnalytics(analyticsResponse.data);
+      })
       .catch((err) => setError(getErrorMessage(err)));
   }, []);
   if (error)
@@ -35,6 +40,16 @@ const AdminDashboard = () => {
       "Bookings scheduled this month",
     ],
     ["Total Bookings", stats.totalBookings, "All booking records"],
+    [
+      "Total Revenue",
+      `₹${Math.round(analytics?.totalRevenue || 0).toLocaleString()}`,
+      "Confirmed parking and services",
+    ],
+    [
+      "Cancelled Booking Value",
+      `₹${Math.round(analytics?.cancelledValue || 0).toLocaleString()}`,
+      `${analytics?.cancelledCount || 0} cancelled bookings`,
+    ],
   ];
   const occupancy = stats.totalSlots
     ? Math.round((stats.bookedSlots / stats.totalSlots) * 100)
@@ -78,6 +93,18 @@ const AdminDashboard = () => {
           <span style={{ width: `${occupancy}%` }} />
         </div>
       </section>
+      {analytics && (
+        <div className="analytics-grid">
+          <LineChart
+            title="Revenue by Parking, Services & Overstay"
+            data={analytics.monthlyRevenue}
+          />
+          <PieChart
+            title="Bookings by Car Name"
+            data={analytics.carBookings}
+          />
+        </div>
+      )}
       <div className="quick-links">
         <Link to="/admin/slots">Manage Parking Slots</Link>
         <Link to="/admin/bookings">View & Search Bookings</Link>

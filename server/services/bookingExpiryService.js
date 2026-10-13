@@ -4,20 +4,16 @@ const ParkingSlot = require("../models/ParkingSlot");
 const getBookingDay = (booking) =>
   new Date(booking.bookingDate).toISOString().slice(0, 10);
 
-const getBookingStartDateTime = (booking) => {
-  const bookingDay = getBookingDay(booking);
-  return new Date(`${bookingDay}T${booking.startTime}:00`);
-};
-
 const getBookingEndDateTime = (booking) => {
+  if (booking.bookingType === "LongTerm" && booking.endDate) {
+    return new Date(booking.endDate);
+  }
   const bookingDay = getBookingDay(booking);
   return new Date(`${bookingDay}T${booking.endTime}:00`);
 };
 
 const isBookingActive = (booking, now = new Date()) =>
-  booking.status === "Booked" &&
-  getBookingStartDateTime(booking) <= now &&
-  getBookingEndDateTime(booking) > now;
+  booking.status === "Booked" && getBookingEndDateTime(booking) > now;
 
 const isBookingReserved = (booking, now = new Date()) =>
   booking.status === "Booked" && getBookingEndDateTime(booking) > now;
@@ -26,7 +22,7 @@ const syncSlotAvailability = async (parkingSlotId, now = new Date()) => {
   const bookings = await Booking.find({
     parkingSlot: parkingSlotId,
     status: "Booked",
-  }).select("bookingDate startTime endTime status");
+  }).select("bookingDate startTime endTime bookingType endDate status");
   const hasActiveBooking = bookings.some((booking) =>
     isBookingActive(booking, now),
   );
@@ -38,7 +34,7 @@ const syncSlotAvailability = async (parkingSlotId, now = new Date()) => {
 const releaseExpiredBookings = async () => {
   const now = new Date();
   const bookings = await Booking.find({ status: "Booked" }).select(
-    "parkingSlot bookingDate startTime endTime status",
+    "parkingSlot bookingDate startTime endTime bookingType endDate status",
   );
   const scheduledSlotIds = [
     ...new Set(bookings.map((booking) => booking.parkingSlot.toString())),
@@ -65,7 +61,6 @@ const startBookingExpiryScheduler = () => {
 
 module.exports = {
   getBookingDay,
-  getBookingStartDateTime,
   getBookingEndDateTime,
   isBookingActive,
   isBookingReserved,

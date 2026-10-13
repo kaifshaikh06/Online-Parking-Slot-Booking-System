@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import ThemeToggle from "./ThemeToggle";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -10,6 +11,8 @@ const Navbar = () => {
   };
 
   const linkClass = ({ isActive }) => (isActive ? "active" : "");
+  if (user?.role === "admin") return null;
+
   return (
     <header className="site-header">
       <nav className="navbar container">
@@ -28,6 +31,12 @@ const Navbar = () => {
               <NavLink to="/login" className={linkClass}>
                 Login
               </NavLink>
+              <NavLink to="/reviews" className={linkClass}>
+                Reviews
+              </NavLink>
+              <NavLink to="/contact" className={linkClass}>
+                Contact
+              </NavLink>
               <NavLink to="/register" className="nav-register">
                 Register
               </NavLink>
@@ -44,30 +53,18 @@ const Navbar = () => {
               <NavLink to="/my-bookings" className={linkClass}>
                 My Bookings
               </NavLink>
-              <button className="link-button" onClick={handleLogout}>
-                Logout
-              </button>
-            </>
-          )}
-          {user?.role === "admin" && (
-            <>
-              <NavLink to="/admin" end className={linkClass}>
-                Dashboard
+              <NavLink to="/reviews" className={linkClass}>
+                Reviews
               </NavLink>
-              <NavLink to="/admin/slots" className={linkClass}>
-                Manage Slots
-              </NavLink>
-              <NavLink to="/admin/slots/new" className={linkClass}>
-                Add Slot
-              </NavLink>
-              <NavLink to="/admin/bookings" className={linkClass}>
-                Bookings/Search
+              <NavLink to="/contact" className={linkClass}>
+                Contact
               </NavLink>
               <button className="link-button" onClick={handleLogout}>
                 Logout
               </button>
             </>
           )}
+          {user && <ThemeToggle />}
         </div>
       </nav>
     </header>

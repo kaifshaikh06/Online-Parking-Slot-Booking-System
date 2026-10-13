@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api, { getErrorMessage } from "../services/api";
 import Loading from "../components/Loading";
 import Message from "../components/Message";
@@ -12,6 +12,7 @@ const parkingSpaceNumbers = Array.from(
 
 const getDurationInHours = (startTime, endTime) => {
   if (!startTime || !endTime || endTime <= startTime) return 0;
+
   const [startHour, startMinute] = startTime.split(":").map(Number);
   const [endHour, endMinute] = endTime.split(":").map(Number);
   return (endHour * 60 + endMinute - startHour * 60 - startMinute) / 60;
@@ -19,16 +20,19 @@ const getDurationInHours = (startTime, endTime) => {
 
 const BookSlot = () => {
   const [slots, setSlots] = useState(null);
-  const [schedule, setSchedule] = useState([]);
+  const [services, setServices] = useState([]);
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({
     vehicleNumber: "",
+    vehicleName: "",
     bookingDate: today,
     startTime: "",
     endTime: "",
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [servicePickerOpen, setServicePickerOpen] = useState(false);
+  const [selectedServiceCodes, setSelectedServiceCodes] = useState([]);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const bookingFormRef = useRef(null);
@@ -38,21 +42,16 @@ const BookSlot = () => {
     api
       .get("/slots")
       .then(({ data }) => setSlots(data.slots))
-      .catch((err) => setError(getErrorMessage(err)));
-  const loadSchedule = (bookingDate) =>
-    api
-      .get("/bookings/schedule", { params: { bookingDate } })
-      .then(({ data }) => setSchedule(data.bookings))
-      .catch((err) => setError(getErrorMessage(err)));
+      .catch((requestError) => setError(getErrorMessage(requestError)));
+
   useEffect(() => {
     loadSlots();
+    api
+      .get("/bookings/services")
+      .then(({ data }) => setServices(data.services))
+      .catch((requestError) => setError(getErrorMessage(requestError)));
   }, []);
-  useEffect(() => {
-    if (form.bookingDate) loadSchedule(form.bookingDate);
-  }, [form.bookingDate]);
 
-  const duration = getDurationInHours(form.startTime, form.endTime);
-  const hasChosenTime = duration > 0;
   const parkingMap = useMemo(
     () =>
       parkingSpaceNumbers.map(
@@ -64,77 +63,91 @@ const BookSlot = () => {
       ),
     [slots],
   );
+
+  const duration = getDurationInHours(form.startTime, form.endTime);
   const estimatedCost = selected && duration ? selected.price * duration : 0;
-
-  const changeSchedule = (field, value) => {
-    setForm((current) => ({ ...current, [field]: value }));
-    setSelected(null);
-    setPaymentOpen(false);
-  };
-
-  const getSpaceDetails = (slot) => {
-    const slotBookings = schedule.filter(
-      (booking) => String(booking.parkingSlot) === String(slot._id),
-    );
-    const conflict =
-      hasChosenTime &&
-      slotBookings.find(
-        (booking) =>
-          booking.startTime < form.endTime && booking.endTime > form.startTime,
-      );
-    const nextBooking =
-      slotBookings.find((booking) => booking.endTime > form.startTime) ||
-      slotBookings[0];
-    const manuallyBlocked =
-      slot.status === "Booked" && slotBookings.length === 0;
-    const selectable =
-      Boolean(slot._id) && hasChosenTime && !conflict && !manuallyBlocked;
-    return { slotBookings, conflict, nextBooking, manuallyBlocked, selectable };
-  };
+  const selectedServices = services.filter((service) =>
+    selectedServiceCodes.includes(service.code),
+  );
+  const serviceTotal = selectedServices.reduce(
+    (total, service) => total + service.price,
+    0,
+  );
+  const totalCost = estimatedCost + serviceTotal;
 
   const chooseSlot = (slot) => {
-    const details = getSpaceDetails(slot);
-    if (!details.selectable) return;
+    if (slot.status !== "Available") return;
+
     setSelected(slot);
+    setSelectedServiceCodes([]);
+    setServicePickerOpen(false);
     setPaymentOpen(false);
     setError("");
-    setTimeout(
-      () =>
-        bookingFormRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        }),
-      0,
-    );
+    setTimeout(() => {
+      bookingFormRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
   };
 
   const preparePayment = (event) => {
     event.preventDefault();
     setError("");
     setSuccess("");
-    if (!selected || !hasChosenTime)
-      return setError(
-        "Choose a valid booking time and available parking space.",
-      );
+
+    if (!selected) {
+      setError("Please select an available parking slot.");
+      return;
+    }
+
+    if (!form.startTime || !form.endTime) {
+      setError("Start time and end time are required.");
+      return;
+    }
+
+    if (form.endTime <= form.startTime) {
+      setError("End time must be later than start time.");
+      return;
+    }
+
+    setServicePickerOpen(true);
+  };
+
+  const toggleService = (serviceCode) => {
+    setSelectedServiceCodes((current) =>
+      current.includes(serviceCode)
+        ? current.filter((code) => code !== serviceCode)
+        : [...current, serviceCode],
+    );
+  };
+
+  const continueToPayment = () => {
+    setServicePickerOpen(false);
     setPaymentOpen(true);
   };
 
   const completeDummyPayment = async () => {
     setError("");
     setSaving(true);
+
     try {
-      await api.post("/bookings", { ...form, parkingSlot: selected._id });
+      await api.post("/bookings", {
+        ...form,
+        parkingSlot: selected._id,
+        addOnCodes: selectedServiceCodes,
+      });
+      setServicePickerOpen(false);
       setPaymentOpen(false);
       setSuccess(
         "Payment completed successfully. Your parking booking is confirmed.",
       );
       setTimeout(() => navigate("/my-bookings"), 1400);
-    } catch (err) {
-      setError(getErrorMessage(err));
+    } catch (requestError) {
+      setError(getErrorMessage(requestError));
       setPaymentOpen(false);
       setSelected(null);
       loadSlots();
-      loadSchedule(form.bookingDate);
     } finally {
       setSaving(false);
     }
@@ -145,74 +158,41 @@ const BookSlot = () => {
       <p className="eyebrow">Make a reservation</p>
       <h1>Book a Parking Slot</h1>
       <p className="page-subtitle">
-        Pick your date and hours first. A space marked as booked becomes
-        selectable again for a later, non-overlapping time.
+        Booked spaces are unavailable until their active booking ends. Select an
+        available space to reserve it by the hour.
       </p>
+      <section className="long-term-entry">
+        <div>
+          <strong>Need parking for more than one day?</strong>
+          <span>
+            Use A-16 to A-20 for long-term parking from 2 to 30 days.
+          </span>
+        </div>
+        <Link className="button button-outline" to="/long-term-parking">
+          Long-Term Parking
+        </Link>
+      </section>
+
       <Message>{error}</Message>
       <Message type="success">{success}</Message>
+
       {!slots ? (
         <Loading />
       ) : (
         <>
-          <section className="schedule-picker">
-            <div>
-              <p className="eyebrow">Step 1</p>
-              <h2>Choose your parking time</h2>
-              <p>Spaces update using the date and time you select.</p>
-            </div>
-            <div className="schedule-inputs">
-              <label>
-                Booking Date
-                <input
-                  type="date"
-                  min={today}
-                  value={form.bookingDate}
-                  onChange={(event) =>
-                    changeSchedule("bookingDate", event.target.value)
-                  }
-                  required
-                />
-              </label>
-              <label>
-                Start Time
-                <input
-                  type="time"
-                  value={form.startTime}
-                  onChange={(event) =>
-                    changeSchedule("startTime", event.target.value)
-                  }
-                  required
-                />
-              </label>
-              <label>
-                End Time
-                <input
-                  type="time"
-                  value={form.endTime}
-                  onChange={(event) =>
-                    changeSchedule("endTime", event.target.value)
-                  }
-                  required
-                />
-              </label>
-            </div>
-          </section>
-          {form.startTime && form.endTime && !hasChosenTime && (
-            <Message>End time must be later than start time.</Message>
-          )}
           <div className="parking-map-heading">
             <div>
-              <p className="eyebrow">Step 2</p>
+              <p className="eyebrow">Step 1</p>
               <h2>Select a parking space</h2>
             </div>
             <div className="parking-legend">
               <span>
                 <i className="legend available" />
-                Available for selected time
+                Available
               </span>
               <span>
                 <i className="legend booked" />
-                Booked for selected time
+                Booked
               </span>
               <span>
                 <i className="legend unavailable" />
@@ -220,36 +200,24 @@ const BookSlot = () => {
               </span>
             </div>
           </div>
+
           <section className="parking-map" aria-label="Parking space map">
             {parkingMap.map((slot) => {
-              const details = getSpaceDetails(slot);
+              const isAvailable = slot.status === "Available";
               const isSelected = selected?._id === slot._id;
-              const unavailable = !slot._id || details.manuallyBlocked;
-              const booked =
-                Boolean(details.conflict) || details.manuallyBlocked;
-              const scheduleText = details.conflict
-                ? `Free after ${details.conflict.endTime}`
-                : details.nextBooking
-                  ? `Reserved: ${details.nextBooking.startTime}–${details.nextBooking.endTime}`
-                  : "No other bookings";
-              const status = unavailable
-                ? slot.status === "Not configured"
-                  ? "Not configured"
-                  : "Unavailable"
-                : booked
-                  ? `Booked until ${details.conflict?.endTime || ""}`
-                  : details.selectable
-                    ? isSelected
-                      ? "Selected"
-                      : "Book this space"
-                    : "Choose a time";
+              const state = isAvailable
+                ? "available"
+                : slot.status === "Booked"
+                  ? "booked"
+                  : "unavailable";
+
               return (
                 <button
                   type="button"
                   key={slot.slotNumber}
-                  className={`parking-space ${booked ? "booked" : unavailable ? "unavailable" : "available"} ${isSelected ? "selected" : ""}`}
+                  className={`parking-space ${state} ${isSelected ? "selected" : ""}`}
                   onClick={() => chooseSlot(slot)}
-                  disabled={!details.selectable}
+                  disabled={!isAvailable}
                   aria-pressed={isSelected}
                 >
                   <span className="parking-car" aria-hidden="true">
@@ -261,12 +229,18 @@ const BookSlot = () => {
                   <span className="parking-rate">
                     {slot._id ? `₹${slot.price}/hr` : "—"}
                   </span>
-                  <span className="parking-status">{status}</span>
-                  <span className="parking-schedule">{scheduleText}</span>
+                  <span className="parking-status">
+                    {isAvailable
+                      ? isSelected
+                        ? "Selected"
+                        : "Available"
+                      : slot.status}
+                  </span>
                 </button>
               );
             })}
           </section>
+
           {selected && (
             <form
               ref={bookingFormRef}
@@ -275,7 +249,7 @@ const BookSlot = () => {
             >
               <div className="booking-form-heading">
                 <div>
-                  <p className="eyebrow">Step 3 · Selected space</p>
+                  <p className="eyebrow">Step 2 · Selected space</p>
                   <h2>Booking details for {selected.slotNumber}</h2>
                 </div>
                 <div className="booking-rate">
@@ -283,10 +257,23 @@ const BookSlot = () => {
                   <strong>₹{selected.price}/hr</strong>
                 </div>
               </div>
+
               <div className="form-grid">
                 <label>
                   Parking Slot
                   <input value={`${selected.slotNumber} — Level A`} disabled />
+                </label>
+                <label>
+                  Car Name
+                  <input
+                    value={form.vehicleName}
+                    onChange={(event) =>
+                      setForm({ ...form, vehicleName: event.target.value })
+                    }
+                    placeholder="Example: Hyundai Creta"
+                    maxLength="60"
+                    required
+                  />
                 </label>
                 <label>
                   Vehicle Number
@@ -304,35 +291,142 @@ const BookSlot = () => {
                 </label>
                 <label>
                   Booking Date
-                  <input value={form.bookingDate} disabled />
+                  <input
+                    type="date"
+                    min={today}
+                    value={form.bookingDate}
+                    onChange={(event) =>
+                      setForm({ ...form, bookingDate: event.target.value })
+                    }
+                    required
+                  />
                 </label>
                 <label>
                   Start Time
-                  <input value={form.startTime} disabled />
+                  <input
+                    type="time"
+                    value={form.startTime}
+                    onChange={(event) =>
+                      setForm({ ...form, startTime: event.target.value })
+                    }
+                    required
+                  />
                 </label>
                 <label>
                   End Time
-                  <input value={form.endTime} disabled />
+                  <input
+                    type="time"
+                    value={form.endTime}
+                    onChange={(event) =>
+                      setForm({ ...form, endTime: event.target.value })
+                    }
+                    required
+                  />
                 </label>
               </div>
-              <div className="booking-estimate">
-                <span>
-                  Estimated charge for {duration} hour
-                  {duration !== 1 ? "s" : ""}
-                </span>
-                <strong>₹{estimatedCost.toFixed(2)}</strong>
-              </div>
-              {paymentOpen ? (
+
+              {duration > 0 && (
+                <div className="booking-estimate">
+                  <span>
+                    Estimated charge for {duration} hour
+                    {duration !== 1 ? "s" : ""}
+                  </span>
+                  <strong>₹{estimatedCost.toFixed(2)}</strong>
+                </div>
+              )}
+
+              {servicePickerOpen ? (
+                <section className="service-picker">
+                  <div className="service-picker-heading">
+                    <div>
+                      <p className="eyebrow">Optional quick services</p>
+                      <h3>Enhance your parking visit</h3>
+                      <p>
+                        Select any service you would like us to complete while
+                        your vehicle is parked. You can also skip this step.
+                      </p>
+                    </div>
+                    <span className="service-picker-count">
+                      {selectedServices.length} selected
+                    </span>
+                  </div>
+
+                  <div className="service-grid">
+                    {services.map((service) => {
+                      const isSelected = selectedServiceCodes.includes(
+                        service.code,
+                      );
+                      return (
+                        <button
+                          type="button"
+                          key={service.code}
+                          className={`service-card ${isSelected ? "selected" : ""}`}
+                          onClick={() => toggleService(service.code)}
+                          aria-pressed={isSelected}
+                        >
+                          <span className="service-card-check" aria-hidden="true">
+                            {isSelected ? "✓" : "+"}
+                          </span>
+                          <strong>{service.name}</strong>
+                          <small>{service.description}</small>
+                          <b>₹{service.price}</b>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="service-summary">
+                    <span>Selected service total</span>
+                    <strong>₹{serviceTotal.toFixed(2)}</strong>
+                  </div>
+
+                  <div className="service-picker-actions">
+                    <button
+                      type="button"
+                      className="button button-outline"
+                      onClick={continueToPayment}
+                    >
+                      Skip & Continue
+                    </button>
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={continueToPayment}
+                      disabled={selectedServices.length === 0}
+                    >
+                      Add Services & Continue
+                    </button>
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() => setServicePickerOpen(false)}
+                    >
+                      Back to Booking Details
+                    </button>
+                  </div>
+                </section>
+              ) : paymentOpen ? (
                 <section className="dummy-payment">
                   <div>
-                    <p className="eyebrow">payment</p>
+                    <p className="eyebrow">Payment</p>
                     <h3>Confirm your payment</h3>
                     <p>
                       This is a demonstration only. No real payment is
                       processed.
                     </p>
                   </div>
-                  <strong>₹{estimatedCost.toFixed(2)}</strong>
+                  <div className="payment-breakdown">
+                    <span>Parking</span>
+                    <strong>₹{estimatedCost.toFixed(2)}</strong>
+                    {selectedServices.length > 0 && (
+                      <>
+                        <span>Quick services</span>
+                        <strong>₹{serviceTotal.toFixed(2)}</strong>
+                      </>
+                    )}
+                    <span>Total</span>
+                    <strong>₹{totalCost.toFixed(2)}</strong>
+                  </div>
                   <div className="payment-actions">
                     <button
                       type="button"
@@ -342,12 +436,15 @@ const BookSlot = () => {
                     >
                       {saving
                         ? "Processing payment..."
-                        : `Pay ₹${estimatedCost.toFixed(2)}`}
+                        : `Pay ₹${totalCost.toFixed(2)}`}
                     </button>
                     <button
                       type="button"
                       className="button button-outline"
-                      onClick={() => setPaymentOpen(false)}
+                      onClick={() => {
+                        setPaymentOpen(false);
+                        setServicePickerOpen(true);
+                      }}
                       disabled={saving}
                     >
                       Back

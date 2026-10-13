@@ -36,7 +36,7 @@ const hasReservedBooking = async (parkingSlotId) => {
   const bookings = await Booking.find({
     parkingSlot: parkingSlotId,
     status: "Booked",
-  }).select("bookingDate startTime endTime status");
+  }).select("bookingDate startTime endTime bookingType endDate status");
   return bookings.some((booking) => isBookingReserved(booking));
 };
 

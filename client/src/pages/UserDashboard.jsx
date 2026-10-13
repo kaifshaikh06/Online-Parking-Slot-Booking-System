@@ -4,22 +4,25 @@ import api, { getErrorMessage } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import Loading from "../components/Loading";
 import Message from "../components/Message";
+import { getBookingEndDateTime } from "../utils/booking";
+import BarChart from "../components/BarChart";
 
 const isBookingActive = (booking, now) => {
-  const bookingDay = new Date(booking.bookingDate).toISOString().slice(0, 10);
-  return (
-    booking.status === "Booked" &&
-    new Date(`${bookingDay}T${booking.endTime}:00`) > now
-  );
+  return booking.status === "Booked" && getBookingEndDateTime(booking) > now;
 };
 
 const UserDashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
   const [error, setError] = useState("");
   useEffect(() => {
-    Promise.all([api.get("/slots"), api.get("/bookings/my")])
-      .then(([slotResponse, bookingResponse]) => {
+    Promise.all([
+      api.get("/slots"),
+      api.get("/bookings/my"),
+      api.get("/bookings/analytics/my"),
+    ])
+      .then(([slotResponse, bookingResponse, analyticsResponse]) => {
         const now = new Date();
         const bookings = bookingResponse.data.bookings;
         setStats({
@@ -35,6 +38,7 @@ const UserDashboard = () => {
               new Date(booking.bookingDate).getFullYear() === now.getFullYear(),
           ).length,
         });
+        setAnalytics(analyticsResponse.data);
       })
       .catch((err) => setError(getErrorMessage(err)));
   }, []);
@@ -66,6 +70,11 @@ const UserDashboard = () => {
               <strong>{stats.monthly}</strong>
               <small>Bookings scheduled this month</small>
             </article>
+            <article className="stat-card">
+              <span>Total Parking Spend</span>
+              <strong>₹{Math.round(analytics?.totalSpend || 0).toLocaleString()}</strong>
+              <small>Parking, quick services, and any overstay charges</small>
+            </article>
           </div>
           <section className="dashboard-panel user-dashboard-panel">
             <div>
@@ -80,9 +89,17 @@ const UserDashboard = () => {
               Open Parking Map
             </Link>
           </section>
+          {analytics && (
+            <BarChart
+              title="My Monthly Parking Cost"
+              data={analytics.monthlySpend}
+              valueLabel="Last 6 months"
+            />
+          )}
           <div className="quick-links">
             <Link to="/book-slot">Book a Slot</Link>
             <Link to="/my-bookings">My Bookings</Link>
+            <Link to="/reviews">Customer Reviews</Link>
           </div>
         </>
       )}
